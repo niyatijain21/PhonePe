@@ -1,0 +1,139 @@
+
+CREATE TABLE edw_shared.mis_rolling_repeat_delta AS
+
+SELECT
+	transaction_date_rr,
+	metric_type_rr,
+	metric_value_rr
+FROM
+	(
+	
+		SELECT 
+			c.transaction_date AS transaction_date_rr, 
+			'Total_users' AS metric_type_rr,
+			COUNT(user_id) AS metric_value_rr
+		FROM   
+			(SELECT 
+				user_id, 
+				transaction_date, 
+				CASE WHEN next_txn_date IS NULL THEN 0 ELSE DATEDIFF(next_txn_date,transaction_date) END AS date_diff 
+			FROM  
+				(SELECT 
+					user_id,
+					transaction_date, 
+					LEAD(transaction_date, 1) over( partition by user_id order by transaction_date asc) as next_txn_date 
+				FROM  
+					(SELECT 
+						user_id, 
+						transaction_date 
+					FROM   
+						edw.payment_detail 
+					WHERE
+						CONCAT(year,SUBSTRING(CONCAT('0',month),-2)) > DATE_FORMAT(DATE_SUB('2021-01-01',120),'yyyyMM')
+						AND payment_category IS NOT NULL AND state = 'COMPLETED' AND pmod(flags,2) = 0 AND (nexus_state IS NULL OR nexus_state = 'COMPLETED')
+					GROUP BY 
+						user_id, 
+						transaction_date) AS x
+				) AS y
+			WHERE user_id IS NOT NULL) AS c
+		GROUP BY c.transaction_date
+			
+	UNION ALL
+	
+		SELECT 
+			c.transaction_date AS transaction_date_rr, 
+			'rr_repeat_30' AS metric_type_rr,
+			COUNT(CASE WHEN date_diff <= 30 and date_diff > 0 THEN user_id END) AS metric_value_rr
+		FROM   
+			(SELECT 
+				user_id, 
+				transaction_date, 
+				CASE WHEN next_txn_date IS NULL THEN 0 ELSE DATEDIFF(next_txn_date,transaction_date) END AS date_diff 
+			FROM  
+				(SELECT 
+					user_id,
+					transaction_date, 
+					LEAD(transaction_date, 1) over( partition by user_id order by transaction_date asc) as next_txn_date 
+				FROM  
+					(SELECT 
+						user_id, 
+						transaction_date 
+					FROM   
+						edw.payment_detail 
+					WHERE
+						CONCAT(year,SUBSTRING(CONCAT('0',month),-2)) > DATE_FORMAT(DATE_SUB('2021-01-01',120),'yyyyMM')
+						AND payment_category IS NOT NULL AND state = 'COMPLETED' AND pmod(flags,2) = 0 AND (nexus_state IS NULL OR nexus_state = 'COMPLETED')
+					GROUP BY 
+						user_id, 
+						transaction_date) AS x
+				) AS y
+			WHERE user_id IS NOT NULL) AS c
+		GROUP BY c.transaction_date
+	
+	UNION ALL
+	
+		SELECT 
+			c.transaction_date AS transaction_date_rr, 
+			'rr_repeat_60' AS metric_type_rr,
+			COUNT(CASE WHEN date_diff <= 60 and date_diff > 0 THEN user_id END) AS metric_value_rr
+		FROM   
+			(SELECT 
+				user_id, 
+				transaction_date, 
+				CASE WHEN next_txn_date IS NULL THEN 0 ELSE DATEDIFF(next_txn_date,transaction_date) END AS date_diff 
+			FROM  
+				(SELECT 
+					user_id,
+					transaction_date, 
+					LEAD(transaction_date, 1) over( partition by user_id order by transaction_date asc) as next_txn_date 
+				FROM  
+					(SELECT 
+						user_id, 
+						transaction_date 
+					FROM   
+						edw.payment_detail 
+					WHERE
+						CONCAT(year,SUBSTRING(CONCAT('0',month),-2)) > DATE_FORMAT(DATE_SUB('2021-01-01',120),'yyyyMM')
+						AND payment_category IS NOT NULL AND state = 'COMPLETED' AND pmod(flags,2) = 0 AND (nexus_state IS NULL OR nexus_state = 'COMPLETED')
+					GROUP BY 
+						user_id, 
+						transaction_date) AS x
+				) AS y
+			WHERE user_id IS NOT NULL) AS c
+		GROUP BY c.transaction_date
+		
+	UNION ALL
+	
+		SELECT 
+			c.transaction_date AS transaction_date_rr, 
+			'rr_repeat_90' AS metric_type,
+			COUNT(CASE WHEN date_diff <= 90 and date_diff > 0 THEN user_id END) AS metric_value
+		FROM   
+			(SELECT 
+				user_id, 
+				transaction_date, 
+				CASE WHEN next_txn_date IS NULL THEN 0 ELSE DATEDIFF(next_txn_date,transaction_date) END AS date_diff 
+			FROM  
+				(SELECT 
+					user_id,
+					transaction_date, 
+					LEAD(transaction_date, 1) over ( partition by user_id order by transaction_date asc) as next_txn_date 
+				FROM  
+					(SELECT 
+						user_id, 
+						transaction_date 
+					FROM   
+						edw.payment_detail 
+					WHERE
+						CONCAT(year,SUBSTRING(CONCAT('0',month),-2)) > DATE_FORMAT(DATE_SUB('2021-01-01',120),'yyyyMM')
+						AND payment_category IS NOT NULL AND state = 'COMPLETED' AND pmod(flags,2) = 0 AND (nexus_state IS NULL OR nexus_state = 'COMPLETED')
+					GROUP BY 
+						user_id, 
+						transaction_date) AS x
+				) AS y
+			WHERE user_id IS NOT NULL) AS c
+		GROUP BY c.transaction_date
+		
+
+	) as a
+;

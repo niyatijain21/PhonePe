@@ -1,0 +1,58 @@
+CREATE TABLE edw_shared.mis_3_and_6_month_retention AS
+
+SELECT
+	acquisition_month_mr,
+	metric_name_mr,
+	metric_value_mr
+FROM
+	(
+	
+		SELECT
+			date_format(first_txn_date,'yyyyMM') AS acquisition_month_mr,
+			'users' as metric_name_mr,
+			COUNT(DISTINCT user_id) AS metric_value_mr
+		FROM
+			edw.payment_detail
+		WHERE
+			CONCAT(`year`,substr(CONCAT('00',`month`),-2)) >= date_format(ADD_MONTHS('2021-01-01',-8),'yyyyMM')
+			AND payment_category IS NOT NULL AND state = 'COMPLETED' AND pmod(flags,2) = 0 AND (nexus_state IS NULL OR nexus_state = 'COMPLETED')
+			AND first_txn_date >= ADD_MONTHS('2021-01-01',-8)
+		GROUP BY
+			date_format(first_txn_date,'yyyyMM')
+			
+	UNION ALL
+	
+		SELECT
+			date_format(first_txn_date,'yyyyMM') AS acquisition_month_mr,
+			'total_3month_repeat_users' as metric_name_mr,
+			COUNT(DISTINCT (CASE WHEN date_format(transaction_date, 'yyyyMM') <= date_format(add_months(first_txn_date, 3), 'yyyyMM') 
+				AND date_format( transaction_date, 'yyyyMM') <> Date_format(first_txn_date, 'yyyyMM') THEN user_id END) ) AS metric_value_mr
+		FROM
+			edw.payment_detail
+		WHERE
+			CONCAT(`year`,substr(CONCAT('00',`month`),-2)) >= date_format(ADD_MONTHS('2021-01-01',-8),'yyyyMM')
+			AND payment_category IS NOT NULL AND state = 'COMPLETED' AND pmod(flags,2) = 0 AND (nexus_state IS NULL OR nexus_state = 'COMPLETED')
+			AND first_txn_date >= ADD_MONTHS('2021-01-01',-8)
+		GROUP BY
+			date_format(first_txn_date,'yyyyMM')
+	
+	UNION ALL
+	
+			SELECT
+			date_format(first_txn_date,'yyyyMM') AS acquisition_month_mr,
+			'total_6month_repeat_users' as metric_name_mr,
+			COUNT(DISTINCT (CASE WHEN date_format(transaction_date, 'yyyyMM') <= date_format(add_months(first_txn_date, 6), 'yyyyMM') 
+				AND date_format( transaction_date, 'yyyyMM') <> Date_format(first_txn_date, 'yyyyMM') THEN user_id END) ) AS metric_value_mr
+		FROM
+			edw.payment_detail
+		WHERE
+			CONCAT(`year`,substr(CONCAT('00',`month`),-2)) >= date_format(ADD_MONTHS('2021-01-01',-8),'yyyyMM')
+			AND payment_category IS NOT NULL AND state = 'COMPLETED' AND pmod(flags,2) = 0 AND (nexus_state IS NULL OR nexus_state = 'COMPLETED')
+			AND first_txn_date >= ADD_MONTHS('2021-01-01',-8)
+		GROUP BY
+			date_format(first_txn_date,'yyyyMM')
+		
+
+	) as a
+	
+;
