@@ -1,2 +1,2 @@
 # PhonePe
-Business Analyst at PhonePe- India's leading digital transactions platform
+SQL Analyses conducted as Business Analyst at PhonePe- India's leading digital transactions platform
